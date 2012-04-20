@@ -1,4 +1,5 @@
-#include "WiFly.h"
+#include <SPI.h>
+#include <Ethernet.h>
 #include "Config.h"
 
 /*
@@ -17,7 +18,7 @@
 
 byte motionCounter = 0;
 
-Client client(HOST, 80);
+EthernetClient client;
 
 void setup(){
   //------------------------ led setup ------------------------
@@ -26,11 +27,9 @@ void setup(){
   pinMode(buttonPin, INPUT);    
   //------------------------ wifly setup ----------------------------------
   Serial.begin(9600);
-  
-  WiFly.begin();
-  
-  if (WiFly.join(ssid, passphrase)) {
-    Serial.println("associted with wifly network.");
+    
+  if (Ethernet.begin(mac) != 0) {
+    Serial.println("associted with ethernet network.");
   } 
   else {
     Serial.println("Association failed.");
@@ -41,6 +40,7 @@ void setup(){
 }
 
 void loop(){
+  delay(pause);
   //------------------- button part ---------------------------------------
   if(digitalRead(buttonPin) == LOW){
     Serial.println("Button NOT pressed.");
@@ -97,7 +97,7 @@ char* generateHttpPut(char* host, char* resource, char occupied){
 }
 
 void connectClient(char* http_request){
-  if (client.connect()) {
+  if (client.connect(HOST, 80)) {
     Serial.println("connected");
     Serial.println(http_request);
     client.print(http_request);

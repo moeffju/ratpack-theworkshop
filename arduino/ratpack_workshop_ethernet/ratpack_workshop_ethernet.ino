@@ -13,7 +13,6 @@
 * http://makersand.co
 *
 * wifly library for arduino 1.0: https://github.com/timr/WiFly-Shield
-*
 */
 
 byte mac[] = {  0xDE, 0xAD, 0xBE, 0xEF, 0xBA, 0xBE };
@@ -36,86 +35,74 @@ void setup() {
     while (1) { /* Hang on failure */ }
   }
 
-  Serial.print(sprintf("Connecting to %s:80", HOST));
+  Serial.print("Connecting to ");
+  Serial.print(HOST);
+  Serial.print(":80 ...");
   if (client.connect(HOST, 80)) {
     Serial.println(" connected!");
   }
   else {
     Serial.println(" failed!");
-    while(1) { /* fail */ }
+    while (1) { /* fail */ }
   }
 }
 
-void loop() {
-  //------------------- button part ---------------------------------------
-  if (digitalRead(buttonPin) == LOW) {
-    Serial.println("Button NOT pressed.");
-    //--------- send status to server
-    sendRequest(generateHttpPut(HOST, RESOURCE, '0'));
-  }
-  else if (digitalRead(buttonPin) == HIGH) {
-    Serial.println("Button IS pressed!");
-    //--------- send status to server 
-    sendRequest(generateHttpPut(HOST, RESOURCE, '1'));
-  }
-  
-  //-------------------- signalling led part -------------------------------------
-  char postString[255];
-  sprintf(postString, "GET %s HTTP/1.1\r\nUser-Agent: %s\r\nHost: %s\r\n", RESOURCE, USERAGENT, HOST);
-  sendRequest(postString);
-  
-  if (client.available()) {
-    // receiving status from server
-    if(client.find("\"activated\": ")){
-      char state[1];
-      client.readBytes(state, 1);
-      if(atoi(state) == 1){
-        Serial.println("BUTTON PRESSED!");
-        digitalWrite(ledPin, HIGH);
-      }
-      else if(atoi(state) == 0) {
-        Serial.println("button not pressed.");
-        digitalWrite(ledPin, LOW);
-      }
-    } 
-    if (!client.connected()) {
-      Serial.println();
-      Serial.println("disconnecting.");
-      client.stop();
-    }
-    
-  }
-  delay(pause); 
-}
+void update_button_status(char state) {
+  char http_request[255];
 
-char* generateHttpPut(char* host, char* resource, char occupied) {
-  char postString[255];
-  sprintf(postString, "PUT %s HTTP/1.1\r\nUser-Agent: %s\r\nHost: %s\r\nContent-Length: 16\r\nContent-Type: application/json\r\n\r\n{\"activated\": %c}"
-  , resource, USERAGENT, host, occupied);
+  Serial.println(state == '1' ? "Button pressed." : "Button NOT pressed.");
 
-  return postString;
-}
-
-void sendRequest(char* http_request){
-  if (!client.connected()) {
-    Serial.println();
-    Serial.println("Disconnected, stopping client.");
-    client.stop();
-    Serial.print("Attempting to reconnect...");
-    if (client.connect(HOST, 80)) {
-      Serial.println(" success!");
-    }
-    else {
-      Serial.println(" failed!");
-    }
-  }
+  sprintf(http_request, "PUT %s HTTP/1.1\r\nUser-Agent: %s\r\nHost: %s\r\nContent-Length: 16\r\nContent-Type: application/json\r\n\r\n{\"activated\": %c}",
+    RESOURCE, USERAGENT, HOST, state);
 
   Serial.println(http_request);
   client.print(http_request);
   client.println();
   
   while (!client.available()) {
-    //Serial.print('.');
+    delay(1);
   }
   Serial.println();
+}
+
+bool get_status_from_server() {
+  char http_request[255];
+  char state[1];
+
+  Serial.println("Getting status from server...");
+
+  sprintf(http_request, "GET %s HTTP/1.1\r\nUser-Agent: %s\r\nHost: %s\r\n", RESOURCE, USERAGENT, HOST);
+  client.print(http_request);
+  client.println();
+
+  while (!client.available()) {
+    delay(1);
+  }
+  if (client.find("\"activated\": ")) {
+    client.readBytes(state, 1);
+    return atoi(state) == 1;
+  }    
+}
+
+void loop() {
+  bool led_state;
+
+  //------------------- button part ---------------------------------------
+  if (digitalRead(buttonPin) == LOW) {
+    update_button_status('0');
+  }
+  else if (digitalRead(buttonPin) == HIGH) {
+    update_button_status('1');
+  }
+  
+  //-------------------- signalling led part -------------------------------------
+  led_state = get_status_from_server();
+  if (led_state) {
+    digitalWrite(ledPin, HIGH);
+  }
+  else {
+    digitalWrite(ledPin, LOW);
+  }
+
+  delay(pause); 
 }

@@ -21,11 +21,11 @@ byte mac[] = {  0xDE, 0xAD, 0xBE, 0xEF, 0xBA, 0xBE };
 EthernetClient client;
 
 void setup() {
-  //------------------------ led setup ------------------------
+  //------------------------ led setup -------------------------
   pinMode(ledPin, OUTPUT);      
-  //------------------------ button setup ------------------------
+  //----------------------- button setup -----------------------
   pinMode(buttonPin, INPUT);    
-  // Start serial library
+  // ---------------------- serial setup -----------------------
   Serial.begin(9600);
   
   // Initialize Ethernet shield
@@ -88,7 +88,7 @@ void loop() {
   delay(pause); 
 }
 
-char* generateHttpPut(char* host, char* resource, char occupied){
+char* generateHttpPut(char* host, char* resource, char occupied) {
   char postString[255];
   sprintf(postString, "PUT %s HTTP/1.1\r\nUser-Agent: %s\r\nHost: %s\r\nContent-Length: 16\r\nContent-Type: application/json\r\n\r\n{\"activated\": %c}"
   , resource, USERAGENT, host, occupied);
@@ -119,4 +119,3 @@ void sendRequest(char* http_request){
   }
   Serial.println();
 }
-

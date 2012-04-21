@@ -35,16 +35,7 @@ void setup() {
     while (1) { /* Hang on failure */ }
   }
 
-  Serial.print("Connecting to ");
-  Serial.print(HOST);
-  Serial.print(":80 ...");
-  if (client.connect(HOST, 80)) {
-    Serial.println(" connected!");
-  }
-  else {
-    Serial.println(" failed!");
-    while (1) { /* fail */ }
-  }
+  connect();
 }
 
 void update_button_status(char state) {
@@ -84,9 +75,32 @@ bool get_status_from_server() {
   }    
 }
 
+void connect() {
+  Serial.print("Connecting to ");
+  Serial.print(HOST);
+  Serial.print(":80 ...");
+  if (client.connect(HOST, 80)) {
+    Serial.println(" connected!");
+  }
+  else {
+    Serial.println(" failed!");
+    while (1) { /* fail */ }
+  }
+}
+
+void check_connection_status() {
+   if (!client.connected()) {
+    Serial.println("\nDisconnected. Stopping client.");
+    client.stop();
+    connect();
+  }
+}
+
 void loop() {
   bool led_state;
 
+  check_connection_status();
+  
   //------------------- button part ---------------------------------------
   if (digitalRead(buttonPin) == LOW) {
     update_button_status('0');
